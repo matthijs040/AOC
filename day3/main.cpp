@@ -6,6 +6,7 @@
 #include <map>
 #include <set>
 #include <iostream>
+#include <string_view>
 constexpr auto buffer_size = 64;
 
 #ifndef NDEBUG
@@ -13,7 +14,6 @@ std::ostream logging_stream = std::ostream{std::clog.rdbuf()};
 #else
 std::ostream logging_stream = std::ostream{nullptr};
 #endif
-
 
 std::optional<int> get_priority(const char character)
 {
@@ -24,47 +24,54 @@ std::optional<int> get_priority(const char character)
     return std::nullopt;
 }
 
-bool cleanly_devides_by_2(const int number)
+template <typename ContainedT, typename Container>
+auto contain(ContainedT key, Container container)
 {
-    return number % 2 == 0;
+    return container.contains(key);
 }
 
-
-
-std::optional<char> duplicate_character(const std::set<char> &first_range, const std::set<char> &second_range)
+template <typename ContainedT, typename Container, typename... Containers>
+auto contain(ContainedT key, Container container, Containers... containers)
 {
-    for (const char character : first_range)
+    if (container.contains(key))
+        return contain(key, containers...);
+    return false;
+}
+
+template <typename KeyT, typename Container, typename... Containers>
+std::optional<KeyT> shared_key(Container container, Containers... containers)
+{
+    for (const auto key : container)
     {
-        if (second_range.contains(character))
-            return character;
+        if (contain(key, containers...))
+            return std::optional(key);
     }
-    return std::nullopt;
+    return std::optional<KeyT>();
 }
 
 int main(int argc, char const *argv[])
 {
-    auto input = std::fstream("input.txt");
+    auto input = std::fstream("input2.txt");
     auto line_buffer = std::array<char, buffer_size>();
-    auto read_line = 0;
     auto total_priority = 0;
-    while (input.getline(line_buffer.data(), line_buffer.size()))
+    while (input.good())
     {
-        const auto length = std::strlen(line_buffer.data());
-        const auto remaining_capacity = line_buffer.size() - length;
-        if (!cleanly_devides_by_2(length))
-            continue;
+        const auto get_new_set = [&]
+        {
+            input.getline(line_buffer.data(), line_buffer.size());
+            const auto new_set = std::set<char>(line_buffer.begin(), line_buffer.begin() + std::strlen(line_buffer.data()));
+            line_buffer.fill('\0');
 
-        auto first_half = std::set<char>();
-        first_half.insert(line_buffer.begin(), line_buffer.end() - remaining_capacity - length / 2);
+            return new_set;
+        };
 
-        auto second_half = std::set<char>();
-        second_half.insert(line_buffer.begin() + length / 2, line_buffer.end() - remaining_capacity);
+        const auto first_set = get_new_set();
+        const auto second_set = get_new_set();
+        const auto third_set = get_new_set();
 
-        const auto dup = duplicate_character(first_half, second_half);
-        logging_stream << "duplicate characers for line: " << read_line << " is: " << *dup << '\n';
-        total_priority += *get_priority(*dup);
-        line_buffer.fill('\0');
-        read_line++;
+        const auto found_key = shared_key<char>(first_set, second_set, third_set);
+        logging_stream << "duplicate character is: " << *found_key << '\n';
+        total_priority += *get_priority(*found_key);
     }
 
     logging_stream << "total priority is: " << total_priority << '\n';
