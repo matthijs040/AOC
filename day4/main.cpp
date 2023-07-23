@@ -41,7 +41,7 @@ extract_digit_range(const std::string_view &hypen_seperated_outer_values) {
   auto digits = std::vector<uint32_t>(num_digits);
   std::iota(digits.begin(), digits.end(), lower_digit);
 
-  auto output = std::string(digits.size(), '\0');
+  auto output = std::string();
   for (const auto digit : digits)
     output.append(std::to_string(digit));
 
@@ -63,7 +63,7 @@ extract_two_ranges(const std::string_view &values) {
   output.first = result.value();
 
   result = extract_digit_range(
-      {sep_index + 1, static_cast<size_t>(values.end() - sep_index )});
+      {sep_index + 1, static_cast<size_t>(values.end() - sep_index)});
   if (!result.has_value())
     return ret = std::unexpected(result.error());
   output.second = result.value();
@@ -79,6 +79,9 @@ int main(int argc, char const *argv[]) {
   }
 
   auto input = std::fstream("test_input.txt");
+  std::vector<std::pair<std::string, std::string>> texts;
+  uint32_t count = 0;
+
   while (!input.eof()) {
     std::string line;
     input >> line;
@@ -89,7 +92,13 @@ int main(int argc, char const *argv[]) {
     }
     std::cout << "found digits: " << result.value().first << ","
               << result.value().second << "\n";
+
+    if (result.value().first.contains(result.value().second)
+     || result.value().second.contains(result.value().first))
+      count++;
   }
+
+  std::cout << "num of substrings: " << count << "\n";
 
   return EXIT_SUCCESS;
 }
