@@ -39,7 +39,7 @@ auto contain(ContainedT key, Container container, Containers... containers)
 }
 
 template <typename KeyT, typename Container, typename... Containers>
-std::optional<KeyT> shared_key(Container container, Containers... containers)
+auto shared_key(Container container, Containers... containers)
 {
     for (const auto key : container)
     {

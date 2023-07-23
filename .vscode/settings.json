@@ -45,6 +45,11 @@
         "ostream": "cpp",
         "stdexcept": "cpp",
         "streambuf": "cpp",
-        "typeinfo": "cpp"
+        "typeinfo": "cpp",
+        "cstring": "cpp",
+        "charconv": "cpp",
+        "map": "cpp",
+        "set": "cpp",
+        "expected": "cpp"
     }
 }

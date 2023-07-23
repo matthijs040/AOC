@@ -1,0 +1,4 @@
+*.out
+*.md
+*.json
+!readme.md
