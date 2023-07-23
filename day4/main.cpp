@@ -1,5 +1,7 @@
+#include <algorithm>
 #include <cassert>
 #include <charconv>
+#include <cstdint>
 #include <expected>
 #include <fstream>
 #include <iostream>
@@ -7,8 +9,7 @@
 #include <optional>
 #include <string_view>
 #include <utility>
-
-#include <cstdint>
+#include <vector>
 
 std::expected<std::string, std::error_code>
 extract_digit_range(const std::string_view &hypen_seperated_outer_values) {
@@ -32,14 +33,41 @@ extract_digit_range(const std::string_view &hypen_seperated_outer_values) {
     return ret = std::unexpected(std::make_error_code(results.ec));
 
   if (lower_digit > higher_digit)
-
     return ret = std::unexpected(
                std::make_error_code(std::errc::invalid_argument));
 
-  const auto num_digits = higher_digit - lower_digit;
+  const auto num_digits = (higher_digit - lower_digit) + 1;
 
-  auto output = std::string(num_digits, '\0');
-  std::iota(output.begin(), output.end(), lower_digit);
+  auto digits = std::vector<uint32_t>(num_digits);
+  std::iota(digits.begin(), digits.end(), lower_digit);
+
+  auto output = std::string(digits.size(), '\0');
+  for (const auto digit : digits)
+    output.append(std::to_string(digit));
+
+  return ret = output;
+}
+
+std::expected<std::pair<std::string, std::string>, std::error_code>
+extract_two_ranges(const std::string_view &values) {
+  std::expected<std::pair<std::string, std::string>, std::error_code> ret;
+  auto sep_index = std::find(values.begin(), values.end(), ',');
+  if (sep_index == values.end())
+    return ret = std::unexpected(
+               std::make_error_code(std::errc::invalid_argument));
+
+  std::pair<std::string, std::string> output;
+  auto result = extract_digit_range(values);
+  if (!result.has_value())
+    return ret = std::unexpected(result.error());
+  output.first = result.value();
+
+  result = extract_digit_range(
+      {sep_index + 1, static_cast<size_t>(values.end() - sep_index )});
+  if (!result.has_value())
+    return ret = std::unexpected(result.error());
+  output.second = result.value();
+
   return ret = output;
 }
 
@@ -51,16 +79,17 @@ int main(int argc, char const *argv[]) {
   }
 
   auto input = std::fstream("test_input.txt");
-  std::string line;
-  input >> line;
-
-  auto result = extract_digit_range(line);
-  if (auto error = result.error()) {
-    std::cerr << "Caught error: " << error.message() << "\n";
-    return EXIT_FAILURE;
+  while (!input.eof()) {
+    std::string line;
+    input >> line;
+    auto result = extract_two_ranges(line);
+    if (!result.has_value()) {
+      std::cerr << "Caught error: " << result.error().message() << "\n";
+      return EXIT_FAILURE;
+    }
+    std::cout << "found digits: " << result.value().first << ","
+              << result.value().second << "\n";
   }
-
-  std::cout << "found digits: " << result.value() << "\n";
 
   return EXIT_SUCCESS;
 }
